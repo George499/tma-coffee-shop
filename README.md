@@ -5,7 +5,7 @@ Telegram Mini App: catalog and cart for a coffee shop. Orders are delivered to a
 ## Stack
 
 - **Monorepo:** pnpm workspaces
-- **Web:** Next.js 15 (App Router), TypeScript, Tailwind, `@telegram-apps/sdk-react`, TanStack Query, Zustand, react-hook-form, zod
+- **Web:** Next.js 16 (App Router, React 19), TypeScript, Tailwind v4, `@telegram-apps/sdk-react`, TanStack Query, Zustand, react-hook-form, zod
 - **API:** NestJS, Prisma, PostgreSQL 16, class-validator
 - **Bot:** grammy
 - **Deploy:** Vercel (web), Railway (api, bot, db)
