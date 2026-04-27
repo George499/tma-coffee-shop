@@ -129,3 +129,86 @@ Conventional Commits, осмысленные сообщения:
 ## Что не упоминаем в коде и README
 
 В README, комментариях, коммитах **не упоминать AI-инструменты** (Claude, Cursor, Copilot и т.д.). Это правило заказчика — портфолио должно выглядеть как обычная разработка.
+
+---
+
+## Текущее состояние (на момент последнего коммита)
+
+Каркас и базовая безопасность готовы. На уровне коммитов это видно как `feat(...)` цепочка: bootstrap → web → api → bot → shared → Prisma → catalog → web-каталог → TmaAuthGuard.
+
+Что **сделано и проверено**:
+
+- pnpm workspace монорепо: `apps/web`, `apps/api`, `apps/bot`, `packages/shared`. Все воркспейсы проходят `pnpm typecheck` и `pnpm build`.
+- **Neon Postgres** (serverless) подключён через **Prisma 7 + @prisma/adapter-neon**. Миграция `init` применена. Seed (3 категории, 9 продуктов с placeholder-картинками с picsum) работает через `pnpm --filter @tma-coffee-shop/api prisma:seed`.
+- **API** (NestJS 11): `GET /api/categories`, `GET /api/products?categoryId=N` — публичные. `GET /api/me` — защищённый `TmaAuthGuard`. Глобальный `ValidationPipe` со `whitelist + forbidNonWhitelisted + transform`. CORS на `WEB_ORIGIN`. `/api` префикс на всё.
+- **TmaAuthGuard** + `validateInitData` (HMAC-SHA256 через `@telegram-apps/init-data-node`, окно 24 часа). Юнит-тест из 5 кейсов: валидная подпись, чужой токен, expired, пустая строка, tampered. Прогоняется через `npx jest --testPathPatterns=init-data`.
+- **Bot** (grammy): минимальный, отвечает на `/start`. `pnpm --filter @tma-coffee-shop/bot dev`.
+- **Web** (Next.js 16 App Router + Tailwind v4): `/` показывает каталог. Грид 2/3/4 колонки. Цены через `Intl.NumberFormat` в RUB. Telegram theme через CSS-переменные `--tg-theme-*` с fallback под обычный браузер. **TanStack Query** для серверного состояния. **TelegramInit** компонент монтирует SDK когда страница открыта в Telegram, в обычном браузере молча no-op.
+- На фронте есть **`tmaFetch` обёртка** в `apps/web/lib/api.ts` — для будущих защищённых запросов.
+- `@tma-coffee-shop/shared` экспортирует `OrderStatus` и `DeliveryType` enums. Web/API пока **их не используют** — будет нужно в (C-orders).
+
+Что **НЕ сделано** (см. roadmap ниже).
+
+## Дорожная карта (приоритет сверху вниз)
+
+1. **(C-orders) `POST /api/orders`** — корзина → заказ.
+   - DTO с class-validator (`items: { productId, quantity }[]`, `deliveryType`, `address?`, `customerName`, `customerPhone`, `scheduledAt?`, `comment?`).
+   - Защищён `TmaAuthGuard`.
+   - Upsert `User` по Telegram-id из `req.tmaUser`.
+   - **Пересчёт `totalAmount` на сервере** по актуальным `Product.price` из БД (CLAUDE.md: "не доверяй цене с клиента"). Снапшот `productName` и `productPrice` в `OrderItem`.
+   - Тест на расчёт total (CLAUDE.md прямо требует: "только на критичное — валидация initData, расчёт total").
+2. **(B-cart) Корзина на фронте** — `Zustand` store, кнопка "+" на `ProductCard`, нижняя зафиксированная панель "В корзине X · YYYY ₽" → переход на `/checkout`.
+3. **(B-checkout) `/checkout`** — `react-hook-form` + `zod` (имя, телефон, `PICKUP`/`DELIVERY` + адрес если delivery, желаемое время, комментарий) → `api.createOrder()` через `tmaFetch`.
+4. **(Bot-notify)** — после успеха `POST /api/orders` API дёргает Bot API `sendMessage` в `ADMIN_CHAT_ID` с inline-кнопками "Принять/Отклонить". Кнопки хитят защищённый эндпоинт смены статуса (с auth не initData, а `X-Bot-Secret`, отдельный механизм для server-to-server). Этот механизм — отдельная развилка к моменту реализации.
+5. **(Deploy)** — Vercel (web) + Render free tier или Fly.io free (api+bot). Установить Web App URL в BotFather. Реальный e2e-тест из Telegram.
+
+## Setup на новой машине
+
+Этот файл первый, что читает Claude Code в любой сессии в этой директории. Если ты только что клонировал репо — следуй этим шагам.
+
+```bash
+git clone https://github.com/George499/tma-coffee-shop.git
+cd tma-coffee-shop
+pnpm install
+```
+
+Создать `.env` в **корне монорепо** (gitignored). Шаблон — в `.env.example`. Заполнить:
+
+- `DATABASE_URL` — взять в Neon → Project → Connection details. **Используй "pooled" connection string** для Prisma+adapter-neon.
+- `TELEGRAM_BOT_TOKEN` — взять у `@BotFather` (`/mybots` → выбрать бота → `API Token`). Бот для портфолио: **@tma_coffee_shop_bot**.
+- `ADMIN_CHAT_ID` — твой Telegram user id. Узнать через `@userinfobot`.
+- `NEXT_PUBLIC_BOT_USERNAME` — `tma_coffee_shop_bot` (без `@`).
+- Остальные значения как в `.env.example`.
+
+Прогнать миграцию и seed:
+
+```bash
+cd apps/api
+pnpm prisma:generate
+pnpm prisma:migrate    # если миграция уже применена в Neon — будет no-op
+pnpm prisma:seed       # idempotent
+cd ../..
+```
+
+Запуск всех приложений в dev (в трёх терминалах или `pnpm dev` с корня для параллельного запуска):
+
+```bash
+pnpm --filter @tma-coffee-shop/api dev      # → http://localhost:3001
+pnpm --filter @tma-coffee-shop/web dev      # → http://localhost:3000
+pnpm --filter @tma-coffee-shop/bot dev      # long-poll
+```
+
+Тест initData валидации:
+
+```bash
+cd apps/api && npx jest --testPathPatterns=init-data
+```
+
+## Известные особенности окружения
+
+- **Кириллица в пути проекта ломает Turbopack** (Next.js 16). Держи проект в пути типа `C:\dev\tma-coffee-shop`, **не** в `OneDrive\Документы\...` — будет панике с UTF-8 byte boundaries при `next build`.
+- **Picsum.photos** на некоторых сетях резолвится в IP из CGN-range (`198.18.0.0/15`). Next image optimiser отказывается ходить по private IP. Поэтому в `<ProductCard />` стоит `unoptimized` на `<Image>`. Когда заменишь placeholder-картинки на реальный CDN — флаг можно убрать.
+- **pnpm 10** не запускает `postinstall` скрипты по умолчанию. Список разрешённых пакетов — в `pnpm-workspace.yaml` → `onlyBuiltDependencies`. Если понадобится новый пакет с native-deps — добавить туда.
+- **Prisma 7** убрала `url` из `datasource db` в schema. Конфиг — в `apps/api/prisma.config.ts`. Driver adapter (`@prisma/adapter-neon`) подключается в `PrismaService` constructor.
+- **`.env` грузится в API из main.ts** через `dotenv` с явным path `process.cwd() + '../../.env'` **до** импорта `@nestjs/*`. Это критично: `PrismaService` читает `DATABASE_URL` в constructor, и без явной ранней загрузки получит `undefined`. Не переноси `loadEnv()` ниже импортов.
+- **Кросс-платформенно** скрипты используют `node --env-file=../../.env` (Node 20+ нативный флаг). Если nest watch висит и не может занять порт — остался zombie от предыдущего запуска: `netstat -ano | grep ":3001"` → `taskkill //F //PID <pid>`.
