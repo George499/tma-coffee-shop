@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { CategoriesModule } from './categories/categories.module';
+import { MeModule } from './me/me.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
 
@@ -12,6 +13,7 @@ import { ProductsModule } from './products/products.module';
     PrismaModule,
     CategoriesModule,
     ProductsModule,
+    MeModule,
   ],
 })
 export class AppModule {}
