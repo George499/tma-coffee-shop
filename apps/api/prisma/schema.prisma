@@ -1,0 +1,96 @@
+// Prisma schema for the TMA Coffee Shop.
+// All monetary values are stored as Int (kopecks) and formatted on the client.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  NEW
+  ACCEPTED
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum DeliveryType {
+  PICKUP
+  DELIVERY
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  categoryId  Int
+  name        String
+  description String?
+  price       Int // kopecks
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  category   Category    @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+
+  @@index([categoryId])
+}
+
+model User {
+  id           BigInt   @id // Telegram user id
+  firstName    String
+  lastName     String?
+  username     String?
+  languageCode String?
+  createdAt    DateTime @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  userId        BigInt
+  status        OrderStatus  @default(NEW)
+  totalAmount   Int // kopecks, computed on the server
+  deliveryType  DeliveryType
+  address       String?
+  customerName  String
+  customerPhone String
+  scheduledAt   DateTime?
+  comment       String?
+  createdAt     DateTime     @default(now())
+
+  user  User        @relation(fields: [userId], references: [id])
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id           Int    @id @default(autoincrement())
+  orderId      String
+  productId    Int
+  productName  String // snapshot at order time
+  productPrice Int // snapshot at order time, kopecks
+  quantity     Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}

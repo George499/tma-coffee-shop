@@ -12,8 +12,8 @@ Telegram Mini App "Кофейня" — каталог + корзина с отп
 - **Web**: Next.js 16 (App Router, React 19) + TypeScript + Tailwind v4 + `@telegram-apps/sdk-react` + TanStack Query + Zustand + react-hook-form + zod
 - **API**: NestJS + Prisma + Postgres + class-validator
 - **Bot**: grammy
-- **Деплой**: Vercel (web) + Railway (api, bot, db)
-- **DB**: Postgres 16
+- **Деплой**: Vercel (web) + Neon (db); api и bot — TBD (free-tier на Render/Fly.io)
+- **DB**: Postgres (Neon serverless, free tier)
 
 ## Структура
 
