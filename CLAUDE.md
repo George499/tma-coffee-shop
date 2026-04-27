@@ -170,15 +170,12 @@ Conventional Commits, осмысленные сообщения:
 git clone https://github.com/George499/tma-coffee-shop.git
 cd tma-coffee-shop
 pnpm install
+cp .env.example .env
 ```
 
-Создать `.env` в **корне монорепо** (gitignored). Шаблон — в `.env.example`. Заполнить:
+`.env.example` сейчас содержит **рабочие тестовые значения** (Neon DSN, Telegram bot token, ADMIN_CHAT_ID — всё специально committed для лёгкого handoff демо-портфолио). Скопировал — и всё, можно работать. Перед production-развёртыванием эти значения **обязательно** заменить и убрать `.env.example` из репо.
 
-- `DATABASE_URL` — взять в Neon → Project → Connection details. **Используй "pooled" connection string** для Prisma+adapter-neon.
-- `TELEGRAM_BOT_TOKEN` — взять у `@BotFather` (`/mybots` → выбрать бота → `API Token`). Бот для портфолио: **@tma_coffee_shop_bot**.
-- `ADMIN_CHAT_ID` — твой Telegram user id. Узнать через `@userinfobot`.
-- `NEXT_PUBLIC_BOT_USERNAME` — `tma_coffee_shop_bot` (без `@`).
-- Остальные значения как в `.env.example`.
+Если GitHub secret scanning отозвал bot token (Telegram кооперируется со сканером и иногда инвалидирует залитые токены) — `/revoke` у `@BotFather`, новое значение в `.env.example`, push.
 
 Прогнать миграцию и seed:
 

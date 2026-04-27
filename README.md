@@ -36,18 +36,10 @@ tma-coffee-shop/
 git clone https://github.com/George499/tma-coffee-shop.git
 cd tma-coffee-shop
 pnpm install
+cp .env.example .env
 ```
 
-Copy `.env.example` to `.env` in the repository root and fill in:
-
-| Variable                   | Where to get it                                                         |
-| -------------------------- | ----------------------------------------------------------------------- |
-| `DATABASE_URL`             | Neon dashboard → Connection details (pooled connection string)          |
-| `TELEGRAM_BOT_TOKEN`       | @BotFather → `/mybots` → your bot → `API Token`                         |
-| `ADMIN_CHAT_ID`            | Your Telegram user id (e.g. via @userinfobot)                           |
-| `NEXT_PUBLIC_BOT_USERNAME` | Bot username without `@`                                                |
-| `NEXT_PUBLIC_API_URL`      | `http://localhost:3001` for local dev                                   |
-| `PORT`, `WEB_ORIGIN`       | Defaults already in `.env.example`                                      |
+`.env.example` ships with working values for the portfolio demo (a Neon connection string, a Telegram bot token, an admin chat id). They are intentionally committed so the project clones and runs out of the box. Replace them with your own and remove the file from version control before any real deployment.
 
 Apply the database schema and seed sample data:
 
