@@ -1,11 +1,17 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { ConfigModule } from '@nestjs/config';
+import { CategoriesModule } from './categories/categories.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProductsModule } from './products/products.module';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    // .env is loaded in main.ts before this module is imported, so we just
+    // expose a global ConfigService for typed access.
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
+    PrismaModule,
+    CategoriesModule,
+    ProductsModule,
+  ],
 })
 export class AppModule {}
