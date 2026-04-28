@@ -1,27 +1,33 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DeliveryType } from '@tma-coffee-shop/shared';
+import { DeliveryType, OrderStatus } from '@tma-coffee-shop/shared';
 import type { TmaUser } from '../auth/tma-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminNotifierService } from './admin-notifier.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import type { OrderAction } from './dto/update-order-status.dto';
 import { calculateTotal } from './orders.util';
 
 const SCHEDULE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifier: AdminNotifierService,
+  ) {}
 
   async create(input: CreateOrderDto, tmaUser: TmaUser) {
     const productIds = this.extractUniqueProductIds(input.items);
     const scheduledAt = this.parseScheduledAt(input.scheduledAt);
     this.assertAddressIfDelivery(input);
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({
         where: { id: { in: productIds }, isAvailable: true },
         select: { id: true, name: true, price: true },
@@ -50,6 +56,16 @@ export class OrdersService {
         update: userFields,
       });
 
+      const itemsCreate = input.items.map((item) => {
+        const product = pricing.get(item.productId)!;
+        return {
+          productId: product.id,
+          productName: product.name,
+          productPrice: product.price,
+          quantity: item.quantity,
+        };
+      });
+
       const order = await tx.order.create({
         data: {
           userId,
@@ -63,23 +79,54 @@ export class OrdersService {
           customerPhone: input.customerPhone,
           scheduledAt,
           comment: input.comment ?? null,
-          items: {
-            create: input.items.map((item) => {
-              const product = pricing.get(item.productId)!;
-              return {
-                productId: product.id,
-                productName: product.name,
-                productPrice: product.price,
-                quantity: item.quantity,
-              };
-            }),
-          },
+          items: { create: itemsCreate },
         },
         select: { id: true, status: true, totalAmount: true },
       });
 
-      return order;
+      return { order, itemsCreate };
     });
+
+    // Best-effort: don't block the response on Telegram, but await so the
+    // logger picks up failures while we're still inside the request scope.
+    await this.notifier.notifyNewOrder({
+      orderId: result.order.id,
+      totalAmount: result.order.totalAmount,
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      deliveryType: input.deliveryType,
+      address: input.deliveryType === DeliveryType.DELIVERY ? input.address : null,
+      scheduledAt,
+      comment: input.comment ?? null,
+      items: result.itemsCreate,
+    });
+
+    return result.order;
+  }
+
+  async applyAction(id: string, action: OrderAction) {
+    const next =
+      action === 'accept' ? OrderStatus.ACCEPTED : OrderStatus.CANCELLED;
+
+    const updated = await this.prisma.order.updateMany({
+      where: { id, status: OrderStatus.NEW },
+      data: { status: next },
+    });
+
+    if (updated.count === 0) {
+      const exists = await this.prisma.order.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (!exists) {
+        throw new NotFoundException(`Order ${id} not found`);
+      }
+      throw new ConflictException(
+        `Order ${id} is in status ${exists.status}; only NEW orders can be ${action}ed`,
+      );
+    }
+
+    return { id, status: next };
   }
 
   async findOneForUser(id: string, tmaUser: TmaUser) {
