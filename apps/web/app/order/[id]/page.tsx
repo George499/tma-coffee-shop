@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ApiError, api } from '@/lib/api';
 import { formatPrice } from '@/lib/format';
 import type { Order } from '@/lib/types';
@@ -14,6 +14,27 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   COMPLETED: 'Выдан',
   CANCELLED: 'Отменён',
 };
+
+// Adaptive polling: tighter for fresh orders that need quick admin feedback,
+// looser once accepted, off for terminal states.
+const POLL_INTERVAL_MS: Record<Order['status'], number | false> = {
+  NEW: 3000,
+  ACCEPTED: 5000,
+  READY: false,
+  COMPLETED: false,
+  CANCELLED: false,
+};
+
+function usePageVisible(): boolean {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const handler = () => setVisible(!document.hidden);
+    handler();
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+  return visible;
+}
 
 const DELIVERY_LABEL: Record<Order['deliveryType'], string> = {
   PICKUP: 'Самовывоз',
@@ -35,10 +56,18 @@ export default function OrderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const visible = usePageVisible();
   const query = useQuery<Order, Error>({
     queryKey: ['order', id],
     queryFn: () => api.getOrder(id),
     retry: false,
+    refetchInterval: (q) => {
+      if (!visible) return false;
+      const status = q.state.data?.status;
+      if (!status) return false;
+      return POLL_INTERVAL_MS[status];
+    },
+    refetchIntervalInBackground: false,
   });
 
   return (
