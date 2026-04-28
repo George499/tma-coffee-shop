@@ -12,7 +12,7 @@ Telegram Mini App "Кофейня" — каталог + корзина с отп
 - **Web**: Next.js 16 (App Router, React 19) + TypeScript + Tailwind v4 + `@telegram-apps/sdk-react` + TanStack Query + Zustand + react-hook-form + zod
 - **API**: NestJS + Prisma + Postgres + class-validator
 - **Bot**: grammy, **в одном процессе с API** (Telegram webhook на `/api/telegram/webhook` в проде, long-poll внутри API в локальном dev по `TELEGRAM_LONGPOLL=true`)
-- **Деплой**: Vercel (web) + Render free tier (api в одном Dockerfile) + Neon (db)
+- **Деплой**: Vercel (web) + Railway (api в одном Dockerfile) + Neon (db)
 - **DB**: Postgres (Neon serverless, free tier)
 
 ## Структура
@@ -22,10 +22,10 @@ tma-coffee-shop/
 ├── apps/
 │   ├── web/                # Next.js TMA, vercel.json для деплоя
 │   └── api/                # NestJS REST + Telegram webhook (бот живёт здесь)
-│       └── Dockerfile      # многостадийный билд для Render
+│       └── Dockerfile      # многостадийный билд для Railway
 ├── packages/
 │   └── shared/             # типы, OrderStatus/DeliveryType enum
-├── render.yaml             # Render Blueprint (api как docker web service)
+├── railway.json            # Railway service config (DOCKERFILE builder, healthcheck /api/categories)
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 ├── .env.example
@@ -153,7 +153,7 @@ Conventional Commits, осмысленные сообщения:
 - **Telegram** (`apps/api/src/telegram/`): grammy Bot инстанс с callback handler на `/^order:(accept|reject):(.+)$/`. Webhook controller валидирует `X-Telegram-Bot-Api-Secret-Token`. На bootstrap — либо `setWebhook(TELEGRAM_WEBHOOK_URL)`, либо long-poll если `TELEGRAM_LONGPOLL=true`.
 - **Web** (Next.js 16): `/` каталог с категориями, `ProductCard` со степпером "+/N/-", фиксированный `CartBar` "В корзине X · ₽". Zustand store с `localStorage` persist. `/checkout` — react-hook-form + zod (PICKUP/DELIVERY conditional address, phone regex, scheduledAt диапазон now+15min..now+14d). `/order/[id]` — TanStack Query с adaptive polling (3с при NEW, 5с при ACCEPTED, off при terminal) и Page Visibility-паузой.
 - **Тесты**: 11/11 (5 init-data + 6 calculateTotal).
-- **Деплой**: Render Blueprint (`render.yaml` + `apps/api/Dockerfile`) для api как docker web service free tier; Vercel (`apps/web/vercel.json`) для web.
+- **Деплой**: Railway service (`railway.json` + `apps/api/Dockerfile`, DOCKERFILE builder, healthcheck `/api/categories`); Vercel (`apps/web/vercel.json`) для web.
 
 Что **не делаем** на этом этапе: переходы `ACCEPTED→READY→COMPLETED` (если потребуются — расширить `applyAction` + добавить кнопки в notifier message).
 
@@ -201,7 +201,7 @@ cd apps/api && npx jest --testPathPatterns=init-data
 - **Picsum.photos** на некоторых сетях резолвится в IP из CGN-range (`198.18.0.0/15`). Next image optimiser отказывается ходить по private IP. Поэтому в `<ProductCard />` стоит `unoptimized` на `<Image>`. Когда заменишь placeholder-картинки на реальный CDN — флаг можно убрать.
 - **pnpm 10** не запускает `postinstall` скрипты по умолчанию. Список разрешённых пакетов — в `pnpm-workspace.yaml` → `onlyBuiltDependencies`. Если понадобится новый пакет с native-deps — добавить туда.
 - **Prisma 7** убрала `url` из `datasource db` в schema. Конфиг — в `apps/api/prisma.config.ts`. Driver adapter (`@prisma/adapter-neon`) подключается в `PrismaService` constructor.
-- **`.env` грузится в API из main.ts** через `dotenv` с явным path `process.cwd() + '../../.env'` **до** импорта `@nestjs/*`. Это критично: `PrismaService` читает `DATABASE_URL` в constructor, и без явной ранней загрузки получит `undefined`. Не переноси `loadEnv()` ниже импортов. В проде на Render `.env` файла нет — `dotenv` no-op, переменные приходят из Render env.
+- **`.env` грузится в API из main.ts** через `dotenv` с явным path `process.cwd() + '../../.env'` **до** импорта `@nestjs/*`. Это критично: `PrismaService` читает `DATABASE_URL` в constructor, и без явной ранней загрузки получит `undefined`. Не переноси `loadEnv()` ниже импортов. В проде на Railway `.env` файла нет — `dotenv` no-op, переменные приходят из Railway env.
 - **Кросс-платформенно** скрипты используют `node --env-file=../../.env` (Node 20+ нативный флаг). Если nest watch висит и не может занять порт — остался zombie от предыдущего запуска: `netstat -ano | grep ":3001"` → `taskkill //F //PID <pid>`.
 - **Telegram webhook ↔ long-poll взаимоисключающие**. Telegram держит ровно один источник updates на бот. На локалке с `TELEGRAM_LONGPOLL=true` сервис при старте делает `deleteWebhook()` — иначе grammy выкинет 409 от Bot API.
-- **Render free tier засыпает** после 15 минут без HTTP-запросов. Первый запрос будит сервис ~30с. Telegram при этом ретраит webhook несколько раз с экспоненциальной задержкой, так что заказы не теряются, но первая нотификация после простоя приходит с задержкой. Лечится бесплатным UptimeRobot-монитором на `/api/categories` каждые 5 минут — README'шный «Deployment» описывает.
+- **Railway не засыпает** на платных планах (включая Hobby и trial). UptimeRobot keepalive не нужен — это решение из эпохи Render free-tier; если когда-нибудь вернёмся на free-tier хостинг, см. историю коммитов.
