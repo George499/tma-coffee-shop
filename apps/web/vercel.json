@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @tma-coffee-shop/shared build && pnpm --filter @tma-coffee-shop/web build",
-  "installCommand": "echo skipped — handled by buildCommand",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @tma-coffee-shop/shared build",
+  "buildCommand": "pnpm --filter @tma-coffee-shop/web build",
   "outputDirectory": ".next",
   "framework": "nextjs"
 }
