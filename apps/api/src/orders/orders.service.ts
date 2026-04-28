@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DeliveryType } from '@tma-coffee-shop/shared';
 import type { TmaUser } from '../auth/tma-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -75,6 +80,46 @@ export class OrdersService {
 
       return order;
     });
+  }
+
+  async findOneForUser(id: string, tmaUser: TmaUser) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        totalAmount: true,
+        deliveryType: true,
+        address: true,
+        customerName: true,
+        customerPhone: true,
+        scheduledAt: true,
+        comment: true,
+        createdAt: true,
+        items: {
+          select: {
+            id: true,
+            productId: true,
+            productName: true,
+            productPrice: true,
+            quantity: true,
+          },
+          orderBy: { id: 'asc' },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order ${id} not found`);
+    }
+
+    if (order.userId !== BigInt(tmaUser.id)) {
+      throw new ForbiddenException('You do not have access to this order');
+    }
+
+    const { userId: _userId, ...rest } = order;
+    return rest;
   }
 
   private extractUniqueProductIds(
