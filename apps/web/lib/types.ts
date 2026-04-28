@@ -17,6 +17,46 @@ export type Product = {
   createdAt: string;
 };
 
+export type CreateOrderItemInput = {
+  productId: number;
+  quantity: number;
+};
+
+export type CreateOrderInput = {
+  items: CreateOrderItemInput[];
+  deliveryType: 'PICKUP' | 'DELIVERY';
+  address?: string;
+  customerName: string;
+  customerPhone: string;
+  scheduledAt?: string;
+  comment?: string;
+};
+
+export type CreatedOrder = {
+  id: string;
+  status: 'NEW' | 'ACCEPTED' | 'READY' | 'COMPLETED' | 'CANCELLED';
+  totalAmount: number;
+};
+
+export type OrderItem = {
+  id: number;
+  productId: number;
+  productName: string;
+  productPrice: number;
+  quantity: number;
+};
+
+export type Order = CreatedOrder & {
+  deliveryType: 'PICKUP' | 'DELIVERY';
+  address: string | null;
+  customerName: string;
+  customerPhone: string;
+  scheduledAt: string | null;
+  comment: string | null;
+  createdAt: string;
+  items: OrderItem[];
+};
+
 /** Telegram user shape returned from the @telegram-apps/init-data-node parser. */
 export type TelegramUser = {
   id: number;
