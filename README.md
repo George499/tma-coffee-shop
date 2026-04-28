@@ -8,7 +8,7 @@ Telegram Mini App: catalog and cart for a coffee shop. Orders are delivered to a
 - **Web:** Next.js 16 (App Router, React 19), TypeScript, Tailwind v4, `@telegram-apps/sdk-react`, TanStack Query, Zustand, react-hook-form, zod
 - **API:** NestJS 11, Prisma 7 (with `@prisma/adapter-neon`), PostgreSQL (Neon serverless), class-validator
 - **Bot:** grammy, hosted in-process inside the API as a Telegram webhook
-- **Deploy:** Vercel (web), Railway (api + bot in one service), Neon (Postgres)
+- **Deploy:** Vercel (web), Koyeb (api + bot in one service), Neon (Postgres)
 
 ## Layout
 
@@ -104,29 +104,38 @@ cd apps/api && npx jest --testPathPatterns=init-data
 2. Set **Root Directory** to `apps/web`.
 3. Vercel reads `apps/web/vercel.json` and builds via the monorepo-aware command (it climbs to the repo root, runs `pnpm install --frozen-lockfile`, builds the `shared` package, then builds the web app).
 4. Environment variables on the project:
-   - `NEXT_PUBLIC_API_URL` = your Railway API URL (e.g. `https://tma-coffee-shop-api.up.railway.app`)
+   - `NEXT_PUBLIC_API_URL` = your Koyeb API URL (e.g. `https://tma-coffee-shop-api-george499.koyeb.app`)
    - `NEXT_PUBLIC_BOT_USERNAME` = your bot's username (no `@`)
 5. Deploy. Note the production URL — you'll need it for `WEB_ORIGIN` on the API and for BotFather.
 
-### API + bot → Railway
+### API + bot → Koyeb
 
-The API and the Telegram webhook live in the same process. The repo ships a `railway.json` config and a multi-stage `apps/api/Dockerfile`.
+The API and the Telegram webhook live in the same process. The repo ships a multi-stage `apps/api/Dockerfile` whose build context is the monorepo root.
 
 1. **Push** the repo to GitHub if you haven't already.
-2. **Railway dashboard** → **New Project** → **Deploy from GitHub repo** → select `tma-coffee-shop`. Railway reads `railway.json`, picks the `DOCKERFILE` builder with `apps/api/Dockerfile`, and provisions one service.
-3. Open the service → **Variables** tab → add:
+2. **Koyeb dashboard** → **Create Service** → **GitHub** → pick `tma-coffee-shop` (`main` branch).
+3. Build configuration:
+   - **Builder:** Dockerfile
+   - **Work directory:** `/` (repo root — the Dockerfile expects the monorepo as build context)
+   - **Dockerfile location:** `apps/api/Dockerfile`
+4. Service configuration:
+   - **Instance:** `eco / nano` (free tier, 512 MB RAM, 0.1 vCPU)
+   - **Region:** any (Frankfurt is closest to Neon EU)
+   - **Exposed port:** `3001`
+   - **Health checks:** HTTP path `/api/categories`
+5. Environment variables (Variables tab):
    - `DATABASE_URL` — your Neon connection string
    - `TELEGRAM_BOT_TOKEN` — the bot token
    - `ADMIN_CHAT_ID` — your Telegram user id (the one that should receive new-order alerts)
    - `WEB_ORIGIN` — the Vercel URL of the web app
-   - `TELEGRAM_WEBHOOK_URL` — `https://<your-service>.up.railway.app/api/telegram/webhook` (after the public domain is generated in step 4)
+   - `TELEGRAM_WEBHOOK_URL` — `https://<your-service>.koyeb.app/api/telegram/webhook` (fill after the public domain is shown on the service page)
    - `TELEGRAM_WEBHOOK_SECRET` — random hex (e.g. `openssl rand -hex 32`)
    - `BOT_API_SECRET` — random hex; only used by the dormant `PATCH /api/orders/:id/status` endpoint
    - `NODE_ENV=production`
-4. **Settings** → **Networking** → **Generate Domain** to get the public URL. Copy it back into `TELEGRAM_WEBHOOK_URL` and trigger a redeploy so the API registers the webhook on boot.
-5. Health check is configured to `/api/categories` in `railway.json`. The first deploy takes a few minutes while Docker builds the multi-stage image.
+   - `PORT=3001`
+6. Deploy. The first build pulls the multi-stage image and takes a few minutes. Once Koyeb shows the public domain, paste it into `TELEGRAM_WEBHOOK_URL` and redeploy so the API registers the webhook with Telegram on boot.
 
-Railway charges by usage from the trial credit, then `$5/mo` Hobby plan; unlike Render's free tier the service does not sleep, so no keepalive is required.
+Koyeb's free `eco/nano` instance does not auto-sleep but is rate-limited and metered. If the service is paused for inactivity in the future, swap to a small paid instance or move to a paid plan.
 
 ### BotFather
 
