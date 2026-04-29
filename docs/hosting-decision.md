@@ -13,6 +13,39 @@
 | **`origin/main` HEAD** | `50672f1 chore(deploy): switch from Railway to Koyeb free tier`. |
 | **README** | Зовёт деплоить на Koyeb, **что некорректно** — у Koyeb в 2026 нет free tier (минимум $30/мес). После выбора хоста секцию переписать; если ждём решение — заменить на `## Choosing a host (decision pending)` или указатель на этот файл. |
 
+## Что в TMA уже сделано (код)
+
+Все 5 пунктов исходного roadmap из `CLAUDE.md` реализованы и протестированы локально. По уровням:
+
+**API (NestJS 11)**
+- `GET /api/categories`, `GET /api/products?categoryId=N` — публичные.
+- `GET /api/me`, `POST /api/orders`, `GET /api/orders/:id` — защищены `TmaAuthGuard` (HMAC-SHA256 по bot token, окно 24ч).
+- `PATCH /api/orders/:id/status` — `BotAuthGuard` (X-Bot-Secret, constant-time compare). NEW→ACCEPTED/CANCELLED, повторный вызов даёт 409.
+- `POST /api/telegram/webhook` — Telegram secret-token. Forward в `bot.handleUpdate()`.
+- Глобальный ValidationPipe `whitelist + forbidNonWhitelisted + transform`. CORS на `WEB_ORIGIN`. Префикс `/api`.
+- `OrdersService.create` создаёт заказ в `prisma.$transaction` с upsert User по Telegram-id, server-side пересчётом total и snapshot'ом `productName`/`productPrice` в OrderItem.
+- `AdminNotifierService` шлёт нотификацию в `ADMIN_CHAT_ID` после создания заказа (best-effort, ошибки логируются, не падает).
+
+**Bot (grammy внутри API)**
+- Один Bot инстанс в `TelegramService`. Callback-handler `/^order:(accept|reject):(.+)$/` вызывает `OrdersService.applyAction` напрямую (без HTTP-перепрыга).
+- `TELEGRAM_LONGPOLL=true` локально, `setWebhook(TELEGRAM_WEBHOOK_URL)` в проде. Shutdown hooks стопают long-poll корректно.
+
+**Web (Next.js 16)**
+- `/` — каталог категории/продукты, грид 2/3/4 колонки, `ProductCard` со степпером "−/N/+", фиксированный `CartBar` "В корзине X · YYYY ₽".
+- Корзина: Zustand store, persist в `localStorage` (`tma-coffee-cart`), hasHydrated-флаг чтобы не было SSR/CSR mismatch.
+- `/checkout` — react-hook-form + zod schema, conditional `address` для DELIVERY, phone regex, `scheduledAt` диапазон now+15мин..+14д, `comment` ≤500.
+- `/order/[id]` — TanStack Query, **adaptive polling**: 3с при NEW, 5с при ACCEPTED, off при terminal. Page Visibility API ставит на паузу при скрытом табе.
+- `tmaFetch()` авто-добавляет `Authorization: tma <initData>`. `ApiError` пробрасывает 401/403/404 как осмысленные сообщения на UI.
+
+**Тесты**
+- 11/11 jest: 5 кейсов на initData (валидная/чужой token/expired/empty/tampered) + 6 на `calculateTotal` (multi-item, single, 1-копейка, empty cart, unknown id, защита от подделки цены клиентом).
+
+**Что осознанно НЕ сделано** (anti-scope из CLAUDE.md):
+- Реальная оплата (ни Stars, ни эквайринг).
+- Переходы `ACCEPTED → READY → COMPLETED` — `applyAction` сейчас только NEW→ACCEPTED/CANCELLED. Расширяется элементарно если потребуется.
+- Web админ-панель (управление через бот достаточно).
+- Push клиенту о смене статуса (только админу).
+
 ## Что не получилось
 
 - **Render free** — workspace заблокирован неоплаченным инвойсом $6 за апрель 2025. Чтобы воспользоваться — заплатить инвойс.
@@ -23,6 +56,21 @@
 ## Реальный scope
 
 Не "1 проект на хосте", а **личный мини-PaaS** на 10-20 одновременных сервисов: 4 портфолио-проекта (этот TMA, простой бот, парсер, Vision API) + клиентские demo/test/staging-деплои которые пользователь не хочет лить сразу на сервер заказчика. Высокий churn — сервисы появляются и исчезают по мере engagement'ов. Решения "$5/мес за каждый сервис" не подходят (получится $20-50+/мес).
+
+## Дальнейшие портфолио-проекты
+
+После TMA в очереди ещё минимум 3 backend'а — все они должны жить на той же инфраструктуре, что выберется в этой сессии. Это и есть основная причина не брать решение под "одну услугу за $5/мес":
+
+1. **Простой Telegram-бот** — отдельный grammy-бот без TMA-фронта (например, FAQ-бот или утилита). Single-process, long-poll или webhook. Проще TMA: без БД (или с минимальной SQLite), без web-app. Технически — `Dockerfile` копия по структуре с этого репо, минус Next.js.
+2. **Парсер** — периодический скрапер (что-то с расписанием: новости, цены, RSS). Background worker, не HTTP-сервис. Скорее всего Node + cheerio/playwright или Python + httpx/bs4 (зависит от сайта). Хранение результатов в Postgres / SQLite. Удобно крутить как cron job или long-running с internal scheduler.
+3. **Vision API** — HTTP wrapper над платным image model API (OpenAI gpt-4o-vision / Anthropic Claude / Google Gemini). REST endpoint принимает картинку, прокидывает в выбранную модель, возвращает результат + кэш. Stateless, но с rate-limiting и API-ключами. Демонстрирует работу с multimodal моделями.
+
+**Плюс** клиентские demo/test/staging-деплои (короткоживущие, 2-30 дней), которые не хочется заливать сразу на сервер заказчика. Это main reason почему 10-20 одновременных сервисов реально, не преувеличение.
+
+**Что это значит для архитектуры выбора**:
+- Все 4 backend'а будут разные по характеру: HTTP API (TMA, Vision), background worker (parser), grammy bot (simple bot). Self-hosted PaaS типа Coolify умеет все три типа из коробки (Web service, Background worker, Cron). Render и Railway — тоже, но за каждый сервис отдельный платёж.
+- БД: один Postgres (либо Neon с несколькими databases, либо контейнер на VPS) разделяется между проектами через схемы или отдельные dbs. Для парсера/Vision/простого бота скорее всего хватит SQLite.
+- Каждый проект хранит свой Dockerfile в репо → переезд на сервер клиента когда engagement готов сводится к `docker pull` + env vars.
 
 ## Геокинтекст
 
