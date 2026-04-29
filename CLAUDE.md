@@ -145,7 +145,9 @@ Conventional Commits, осмысленные сообщения:
 
 ## Текущее состояние (на момент последнего коммита)
 
-Все 5 пунктов исходного roadmap (C-orders, B-cart, B-checkout, Bot-notify, Deploy) реализованы. Текущее состояние:
+Все 5 пунктов исходного roadmap (C-orders, B-cart, B-checkout, Bot-notify, Deploy) реализованы **на уровне кода**. **Production-deploy незавершён** — выбор API-хоста на паузе. Прежде чем продолжать deploy-работу, прочитай [docs/hosting-decision.md](docs/hosting-decision.md): там зафиксировано что развёрнуто, что блокирует, какие варианты на столе и пошаговый план для каждого.
+
+Текущее состояние кода:
 
 - **API** (NestJS 11): `GET /api/categories`, `GET /api/products?categoryId=N` — публичные. `GET /api/me`, `POST /api/orders`, `GET /api/orders/:id` — `TmaAuthGuard`. `PATCH /api/orders/:id/status` — `BotAuthGuard` (X-Bot-Secret). `POST /api/telegram/webhook` — Telegram secret-token. `/api` префикс, CORS на `WEB_ORIGIN`, ValidationPipe whitelist+forbid+transform.
 - **OrdersService**: создаёт заказ в `prisma.$transaction`, считает total на сервере, snapshot'ит productName/productPrice в OrderItem, upsert'ит User по Telegram-id. Best-effort шлёт уведомление в админ-чат через `AdminNotifierService` (отдельный fetch, не падает при недоступности Telegram). `applyAction()` переводит NEW→ACCEPTED/CANCELLED conditionally; повторный вызов даёт 409.
