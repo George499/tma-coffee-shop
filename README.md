@@ -8,7 +8,7 @@ Telegram Mini App: catalog and cart for a coffee shop. Orders are delivered to a
 - **Web:** Next.js 16 (App Router, React 19), TypeScript, Tailwind v4, `@telegram-apps/sdk-react`, TanStack Query, Zustand, react-hook-form, zod
 - **API:** NestJS 11, Prisma 7 (with `@prisma/adapter-neon`), PostgreSQL (Neon serverless), class-validator
 - **Bot:** grammy, hosted in-process inside the API as a Telegram webhook
-- **Deploy:** Vercel (web), Koyeb (api + bot in one service), Neon (Postgres)
+- **Deploy:** Vercel (web), self-hosted Docker host running Coolify (api + bot in one container), Neon (Postgres)
 
 ## Layout
 
@@ -104,38 +104,58 @@ cd apps/api && npx jest --testPathPatterns=init-data
 2. Set **Root Directory** to `apps/web`.
 3. Vercel reads `apps/web/vercel.json` and builds via the monorepo-aware command (it climbs to the repo root, runs `pnpm install --frozen-lockfile`, builds the `shared` package, then builds the web app).
 4. Environment variables on the project:
-   - `NEXT_PUBLIC_API_URL` = your Koyeb API URL (e.g. `https://tma-coffee-shop-api-george499.koyeb.app`)
+   - `NEXT_PUBLIC_API_URL` = the public URL of the deployed API (e.g. `https://tma-api.example.com`)
    - `NEXT_PUBLIC_BOT_USERNAME` = your bot's username (no `@`)
 5. Deploy. Note the production URL — you'll need it for `WEB_ORIGIN` on the API and for BotFather.
 
-### API + bot → Koyeb
+### API + bot → any Docker host
 
-The API and the Telegram webhook live in the same process. The repo ships a multi-stage `apps/api/Dockerfile` whose build context is the monorepo root.
+The API and the Telegram webhook live in the same process. The repo ships a multi-stage `apps/api/Dockerfile` whose build context is the monorepo root, so anything that runs Docker will do — Coolify (self-hosted), Render, Railway, Fly, a plain VPS with `docker compose`, etc.
 
-1. **Push** the repo to GitHub if you haven't already.
-2. **Koyeb dashboard** → **Create Service** → **GitHub** → pick `tma-coffee-shop` (`main` branch).
-3. Build configuration:
-   - **Builder:** Dockerfile
-   - **Work directory:** `/` (repo root — the Dockerfile expects the monorepo as build context)
-   - **Dockerfile location:** `apps/api/Dockerfile`
-4. Service configuration:
-   - **Instance:** `eco / nano` (free tier, 512 MB RAM, 0.1 vCPU)
-   - **Region:** any (Frankfurt is closest to Neon EU)
-   - **Exposed port:** `3001`
-   - **Health checks:** HTTP path `/api/categories`
-5. Environment variables (Variables tab):
-   - `DATABASE_URL` — your Neon connection string
-   - `TELEGRAM_BOT_TOKEN` — the bot token
-   - `ADMIN_CHAT_ID` — your Telegram user id (the one that should receive new-order alerts)
-   - `WEB_ORIGIN` — the Vercel URL of the web app
-   - `TELEGRAM_WEBHOOK_URL` — `https://<your-service>.koyeb.app/api/telegram/webhook` (fill after the public domain is shown on the service page)
-   - `TELEGRAM_WEBHOOK_SECRET` — random hex (e.g. `openssl rand -hex 32`)
-   - `BOT_API_SECRET` — random hex; only used by the dormant `PATCH /api/orders/:id/status` endpoint
-   - `NODE_ENV=production`
-   - `PORT=3001`
-6. Deploy. The first build pulls the multi-stage image and takes a few minutes. Once Koyeb shows the public domain, paste it into `TELEGRAM_WEBHOOK_URL` and redeploy so the API registers the webhook with Telegram on boot.
+Required at the host:
 
-Koyeb's free `eco/nano` instance does not auto-sleep but is rate-limited and metered. If the service is paused for inactivity in the future, swap to a small paid instance or move to a paid plan.
+- **Build:** `apps/api/Dockerfile`, build context `/` (repo root). The runtime image listens on port `3001`.
+- **Health check:** HTTP `GET /api/categories`.
+- **Environment variables:**
+  - `DATABASE_URL` — Neon connection string
+  - `TELEGRAM_BOT_TOKEN` — bot token
+  - `ADMIN_CHAT_ID` — Telegram user id that receives new-order alerts
+  - `WEB_ORIGIN` — Vercel URL of the web app (used as the CORS origin)
+  - `TELEGRAM_WEBHOOK_URL` — public URL where Telegram will POST updates (e.g. `https://tma-api.example.com/api/telegram/webhook`)
+  - `TELEGRAM_WEBHOOK_SECRET` — random hex (`openssl rand -hex 32`)
+  - `BOT_API_SECRET` — random hex; only used by the dormant `PATCH /api/orders/:id/status` endpoint
+  - `NODE_ENV=production`, `PORT=3001`
+  - `TELEGRAM_API_ROOT` *(optional)* — set to a thin reverse proxy if `api.telegram.org` is not reachable from the host. See `.env.example`.
+
+Once the API is up, Telegram registers the webhook automatically on boot via `setWebhook`.
+
+#### Note for Russian VPS hosts
+
+Most Russian datacenters block both outbound to `api.telegram.org` and inbound from Telegram's IP ranges. The bot won't work there without a proxy. The cheapest fix is a single Cloudflare Worker that does both directions:
+
+```javascript
+const ORIGIN = 'https://tma-api.example.com'; // your API public URL
+
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    // Inbound: Telegram → Worker → our origin
+    if (url.pathname.startsWith('/inbound/')) {
+      const target = `${ORIGIN}${url.pathname.replace('/inbound', '')}${url.search}`;
+      return fetch(target, { method: request.method, headers: request.headers, body: request.body });
+    }
+
+    // Outbound: our API → Worker → api.telegram.org
+    url.protocol = 'https:';
+    url.host = 'api.telegram.org';
+    url.port = '';
+    return fetch(url.toString(), { method: request.method, headers: request.headers, body: request.body, redirect: 'manual' });
+  },
+};
+```
+
+Then point the API at it: `TELEGRAM_API_ROOT=https://<worker>.workers.dev`, and register the webhook on the inbound path: `TELEGRAM_WEBHOOK_URL=https://<worker>.workers.dev/inbound/api/telegram/webhook`.
 
 ### BotFather
 

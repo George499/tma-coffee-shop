@@ -145,16 +145,21 @@ Conventional Commits, осмысленные сообщения:
 
 ## Текущее состояние (на момент последнего коммита)
 
-Все 5 пунктов исходного roadmap (C-orders, B-cart, B-checkout, Bot-notify, Deploy) реализованы **на уровне кода**. **Production-deploy незавершён** — выбор API-хоста на паузе. Прежде чем продолжать deploy-работу, прочитай [docs/hosting-decision.md](docs/hosting-decision.md): там зафиксировано что развёрнуто, что блокирует, какие варианты на столе и пошаговый план для каждого.
+Все 5 пунктов исходного roadmap (C-orders, B-cart, B-checkout, Bot-notify, Deploy) реализованы и **развёрнуты в продакшене**. Боевой URL API — `https://tma-api.inglo.ru`, фронт — `https://tma-coffee-shop.vercel.app`, бот — `@tma_coffee_shop_bot`.
 
 Текущее состояние кода:
 
 - **API** (NestJS 11): `GET /api/categories`, `GET /api/products?categoryId=N` — публичные. `GET /api/me`, `POST /api/orders`, `GET /api/orders/:id` — `TmaAuthGuard`. `PATCH /api/orders/:id/status` — `BotAuthGuard` (X-Bot-Secret). `POST /api/telegram/webhook` — Telegram secret-token. `/api` префикс, CORS на `WEB_ORIGIN`, ValidationPipe whitelist+forbid+transform.
 - **OrdersService**: создаёт заказ в `prisma.$transaction`, считает total на сервере, snapshot'ит productName/productPrice в OrderItem, upsert'ит User по Telegram-id. Best-effort шлёт уведомление в админ-чат через `AdminNotifierService` (отдельный fetch, не падает при недоступности Telegram). `applyAction()` переводит NEW→ACCEPTED/CANCELLED conditionally; повторный вызов даёт 409.
-- **Telegram** (`apps/api/src/telegram/`): grammy Bot инстанс с callback handler на `/^order:(accept|reject):(.+)$/`. Webhook controller валидирует `X-Telegram-Bot-Api-Secret-Token`. На bootstrap — либо `setWebhook(TELEGRAM_WEBHOOK_URL)`, либо long-poll если `TELEGRAM_LONGPOLL=true`.
+- **Telegram** (`apps/api/src/telegram/`): grammy Bot инстанс с callback handler на `/^order:(accept|reject):(.+)$/`. Webhook controller валидирует `X-Telegram-Bot-Api-Secret-Token`. На bootstrap делает `bot.init()` (нужно для webhook-режима, иначе `handleUpdate` падает с "Bot not initialized!"), потом либо `setWebhook(TELEGRAM_WEBHOOK_URL)`, либо long-poll если `TELEGRAM_LONGPOLL=true`. Mode переключается в `webhook` **до** успеха `setWebhook` — транзиентная ошибка регистрации не должна выключать inbound-обработчик.
 - **Web** (Next.js 16): `/` каталог с категориями, `ProductCard` со степпером "+/N/-", фиксированный `CartBar` "В корзине X · ₽". Zustand store с `localStorage` persist. `/checkout` — react-hook-form + zod (PICKUP/DELIVERY conditional address, phone regex, scheduledAt диапазон now+15min..now+14d). `/order/[id]` — TanStack Query с adaptive polling (3с при NEW, 5с при ACCEPTED, off при terminal) и Page Visibility-паузой.
 - **Тесты**: 11/11 (5 init-data + 6 calculateTotal).
-- **Деплой**: Koyeb service (Dockerfile builder на `apps/api/Dockerfile`, healthcheck `/api/categories`, free `eco/nano`); Vercel (`apps/web/vercel.json`) для web. Конфиг Koyeb-сервиса задаётся в дашборде, отдельного файла в репо нет.
+- **Деплой:**
+  - **Web**: Vercel (`apps/web/vercel.json`), env `NEXT_PUBLIC_API_URL=https://tma-api.inglo.ru`.
+  - **API**: self-hosted **Coolify v4** на VPS Hostland (Ubuntu 24.04, 11 GB / 4 vCPU). Coolify деплоит из GitHub `main` через `apps/api/Dockerfile` (build context = repo root). Контейнер слушает на 3001, Coolify Traefik забинден на `127.0.0.1:8080:80` (наружу не торчит). Существующий nginx на VPS принимает HTTPS на `tma-api.inglo.ru`, делает SSL termination через certbot HTTP-challenge (auto-renew стандартным cron'ом), и проксирует на `127.0.0.1:8080` → Traefik → контейнер. Конфиг nginx: `/etc/nginx/sites-available/tma-api.inglo.ru.conf`.
+  - **DB**: Neon (продолжаем). Direct connection (без `-pooler`), pooling делает `@prisma/adapter-neon` через WebSocket-driver.
+  - **Telegram-прокси**: Hostland-датацентр блокирует и outbound к `api.telegram.org`, и inbound с IP Telegram. Решено двунаправленным Cloudflare Worker'ом `tg-proxy.vypyrov.workers.dev`. Outbound: `bot.api.*` ходит через `TELEGRAM_API_ROOT=https://tg-proxy.vypyrov.workers.dev` (передаётся в grammy и в `AdminNotifierService.notifyNewOrder`). Inbound: webhook зарегистрирован на `https://tg-proxy.vypyrov.workers.dev/inbound/api/telegram/webhook`, Worker форвардит этот path на `https://tma-api.inglo.ru/api/telegram/webhook`. Код Worker'а лежит в README → раздел "Note for Russian VPS hosts".
+- **Sudo на VPS**: рабочий пользователь `deploy` имеет `sudo` (с паролем). Никаких passwordless-прав на сервере не оставлено.
 
 Что **не делаем** на этом этапе: переходы `ACCEPTED→READY→COMPLETED` (если потребуются — расширить `applyAction` + добавить кнопки в notifier message).
 
