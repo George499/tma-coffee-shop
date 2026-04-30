@@ -16,6 +16,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # ---- Build the api + shared package, generate Prisma client ----
 FROM deps AS build
+COPY tsconfig.base.json ./
 COPY packages/shared packages/shared
 COPY apps/api apps/api
 RUN pnpm --filter @tma-coffee-shop/shared build
