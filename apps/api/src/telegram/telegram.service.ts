@@ -30,7 +30,8 @@ export class TelegramService
       return;
     }
 
-    this.bot = new Bot(token);
+    const apiRoot = process.env.TELEGRAM_API_ROOT;
+    this.bot = new Bot(token, apiRoot ? { client: { apiRoot } } : undefined);
 
     this.bot.command('start', async (ctx) => {
       await ctx.reply('Coffee shop bot is online.');

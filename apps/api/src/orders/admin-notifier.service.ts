@@ -57,7 +57,8 @@ export class AdminNotifierService {
     }
 
     const text = this.buildText(payload);
-    const url = `https://api.telegram.org/bot${token}/sendMessage`;
+    const apiRoot = process.env.TELEGRAM_API_ROOT ?? 'https://api.telegram.org';
+    const url = `${apiRoot}/bot${token}/sendMessage`;
 
     try {
       const res = await fetch(url, {
