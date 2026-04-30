@@ -56,6 +56,14 @@ export class TelegramService
       // (e.g. set manually). A transient registration failure (DNS lag,
       // outbound hiccup) shouldn't disable the inbound handler entirely.
       this.mode = 'webhook';
+      // bot.init() fetches /getMe and is required before bot.handleUpdate()
+      // can be used. In long-poll mode bot.start() handles this internally;
+      // in webhook mode we have to call it ourselves.
+      try {
+        await this.bot.init();
+      } catch (err) {
+        this.logger.error('bot.init() failed', err as Error);
+      }
       const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
       try {
         await this.bot.api.setWebhook(webhookUrl, {
