@@ -51,16 +51,23 @@ export class TelegramService
 
     const webhookUrl = process.env.TELEGRAM_WEBHOOK_URL;
     if (webhookUrl) {
+      // Enable webhook mode regardless of whether setWebhook succeeds:
+      // setWebhook is idempotent, and the webhook may already be registered
+      // (e.g. set manually). A transient registration failure (DNS lag,
+      // outbound hiccup) shouldn't disable the inbound handler entirely.
+      this.mode = 'webhook';
       const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
       try {
         await this.bot.api.setWebhook(webhookUrl, {
           secret_token: secret,
           drop_pending_updates: false,
         });
-        this.mode = 'webhook';
         this.logger.log(`Telegram webhook registered: ${webhookUrl}`);
       } catch (err) {
-        this.logger.error('Failed to register Telegram webhook', err as Error);
+        this.logger.error(
+          'setWebhook call failed; assuming webhook may already be registered and continuing in webhook mode',
+          err as Error,
+        );
       }
       return;
     }
