@@ -16,13 +16,17 @@ export function Catalog() {
   });
 
   if (categoriesQuery.isPending || productsQuery.isPending) {
-    return <p className="text-tg-hint text-sm px-1">Loading menu…</p>;
+    return (
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute px-5 py-6">
+        loading menu…
+      </p>
+    );
   }
 
   if (categoriesQuery.isError || productsQuery.isError) {
     return (
-      <p className="text-tg-destructive text-sm px-1">
-        Failed to load the menu. Try again later.
+      <p className="font-mono text-xs uppercase tracking-[0.2em] text-danger px-5 py-6">
+        failed to load. try again later.
       </p>
     );
   }
@@ -35,7 +39,7 @@ export function Catalog() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div>
       {categoriesQuery.data.map((category) => (
         <CategorySection
           key={category.id}

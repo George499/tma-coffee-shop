@@ -10,14 +10,16 @@ const adapter = new PrismaNeon({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 type ProductSeed = {
-  slug: string; // used to derive the picsum image URL
+  slug: string; // used to derive the local image URL served by the web app
   name: string;
   description: string;
   price: number; // kopecks
 };
 
-const placeholderImage = (slug: string) =>
-  `https://picsum.photos/seed/coffee-shop-${slug}/600/600`;
+// Product images are self-hosted in apps/web/public/products/<slug>.jpg
+// and served from the same origin as the web app (Vercel). A leading slash
+// makes the path relative to the web origin; Next.js Image will optimize.
+const productImage = (slug: string) => `/products/${slug}.jpg`;
 
 const catalog: Array<{
   category: { name: string; slug: string; sortOrder: number };
@@ -110,7 +112,7 @@ async function main(): Promise<void> {
           name: product.name,
           description: product.description,
           price: product.price,
-          imageUrl: placeholderImage(product.slug),
+          imageUrl: productImage(product.slug),
         },
       });
     }

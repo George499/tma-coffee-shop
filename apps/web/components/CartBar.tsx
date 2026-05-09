@@ -34,14 +34,25 @@ export function CartBar() {
     >
       <Link
         href="/checkout"
-        className="block max-w-4xl mx-auto bg-tg-button text-tg-button-text rounded-2xl px-4 py-3 shadow-lg active:opacity-90 transition-opacity"
+        className="block max-w-4xl mx-auto bg-ink text-paper border-2 border-ink active:translate-y-[2px] transition-transform"
+        style={{ boxShadow: '6px 6px 0 0 var(--color-accent)' }}
       >
-        <span className="flex items-center justify-between gap-3">
-          <span className="font-semibold">
-            В корзине {totalQuantity} {pluralizeItems(totalQuantity)}
+        <span className="flex items-center justify-between gap-3 px-4 py-3.5">
+          <span className="flex flex-col">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/60">
+              корзина
+            </span>
+            <span className="font-display font-bold uppercase">
+              {totalQuantity} {pluralizeItems(totalQuantity)}
+            </span>
           </span>
-          <span className="font-semibold tabular-nums">
-            {formatPrice(totalPrice)} →
+          <span className="flex items-center gap-3">
+            <span className="font-mono font-bold tabular-nums">
+              {formatPrice(totalPrice)}
+            </span>
+            <span className="font-display font-bold text-xl leading-none">
+              →
+            </span>
           </span>
         </span>
       </Link>

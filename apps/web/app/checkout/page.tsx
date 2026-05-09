@@ -64,19 +64,21 @@ export default function CheckoutPage() {
 
   if (!hasHydrated) {
     return (
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 py-4">
-        <p className="text-tg-hint text-sm px-1">Загрузка корзины…</p>
+      <main className="flex-1 max-w-4xl w-full mx-auto px-5 py-6">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute">
+          загрузка корзины…
+        </p>
       </main>
     );
   }
 
   if (totalQuantity === 0) {
     return (
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 py-4">
-        <p className="text-tg-hint text-sm px-1">
-          Корзина пустая.{' '}
-          <Link href="/" className="text-tg-link underline">
-            Вернуться в каталог
+      <main className="flex-1 max-w-4xl w-full mx-auto px-5 py-6">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute">
+          корзина пустая.{' '}
+          <Link href="/" className="underline text-ink">
+            вернуться в каталог
           </Link>
         </p>
       </main>
@@ -119,53 +121,63 @@ export default function CheckoutPage() {
   });
 
   const fieldClass =
-    'w-full rounded-xl bg-tg-secondary-bg text-tg-text px-3 py-2 outline-none border border-transparent focus:border-tg-button';
-  const labelClass = 'text-tg-text text-sm font-medium';
-  const errorClass = 'text-tg-destructive text-xs';
+    'w-full bg-card text-ink px-3 py-2.5 border-2 border-ink outline-none font-display placeholder:text-mute focus:bg-paper';
+  const labelClass =
+    'font-mono text-[10px] uppercase tracking-[0.2em] text-ink';
+  const errorClass = 'font-mono text-[10px] uppercase tracking-[0.15em] text-danger';
+  const sectionClass = 'border-2 border-ink bg-card p-4 flex flex-col gap-3';
+  const sectionHeader =
+    'font-mono text-[10px] uppercase tracking-[0.25em] text-ink border-b-2 border-ink pb-2';
 
   return (
-    <main className="flex-1 max-w-4xl w-full mx-auto px-3 py-4 flex flex-col gap-4">
-      <header className="flex items-center justify-between gap-2 px-1">
-        <h1 className="text-tg-text text-2xl font-semibold">Оформление</h1>
-        <Link href="/" className="text-tg-link text-sm">
-          ← Каталог
+    <main className="flex-1 max-w-4xl w-full mx-auto pb-32">
+      <header className="px-5 pt-6 pb-5 border-b-2 border-ink flex items-end justify-between gap-4">
+        <div>
+          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-mute">
+            шаг 02 · оформление
+          </p>
+          <h1 className="mt-2 font-display font-bold text-[clamp(2rem,7vw,3.5rem)] leading-[0.95] tracking-tight uppercase">
+            Checkout
+          </h1>
+        </div>
+        <Link
+          href="/"
+          className="font-mono text-xs uppercase tracking-[0.18em] underline whitespace-nowrap"
+        >
+          ← каталог
         </Link>
       </header>
-      <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-        <section className="bg-tg-section-bg rounded-2xl p-3 flex flex-col gap-2">
-          <h2 className="text-tg-section-header-text uppercase text-xs font-semibold tracking-wider">
-            Заказ
-          </h2>
+      <form onSubmit={onSubmit} className="px-5 pt-5 flex flex-col gap-4" noValidate>
+        <section className={sectionClass}>
+          <h2 className={sectionHeader}>/ Заказ</h2>
           <ul className="flex flex-col gap-1.5">
             {Object.values(items).map((entry) => (
               <li
                 key={entry.product.id}
                 className="flex items-baseline justify-between gap-3 text-sm"
               >
-                <span className="text-tg-text">
+                <span>
                   {entry.product.name}
-                  <span className="text-tg-hint"> × {entry.quantity}</span>
+                  <span className="text-mute font-mono"> × {entry.quantity}</span>
                 </span>
-                <span className="text-tg-text tabular-nums">
+                <span className="font-mono tabular-nums">
                   {formatPrice(entry.product.price * entry.quantity)}
                 </span>
               </li>
             ))}
           </ul>
-          <div className="flex items-baseline justify-between border-t border-tg-secondary-bg pt-2">
-            <span className="text-tg-text font-semibold">Итого</span>
-            <span className="text-tg-text font-semibold tabular-nums">
+          <div className="flex items-baseline justify-between border-t-2 border-ink pt-2">
+            <span className="font-display font-bold uppercase">Итого</span>
+            <span className="font-mono font-bold text-lg tabular-nums">
               {formatPrice(totalPrice)}
             </span>
           </div>
         </section>
 
-        <section className="bg-tg-section-bg rounded-2xl p-3 flex flex-col gap-3">
-          <h2 className="text-tg-section-header-text uppercase text-xs font-semibold tracking-wider">
-            Контакты
-          </h2>
+        <section className={sectionClass}>
+          <h2 className={sectionHeader}>/ Контакты</h2>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="customerName" className={labelClass}>
               Имя
             </label>
@@ -180,7 +192,7 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="customerPhone" className={labelClass}>
               Телефон
             </label>
@@ -199,38 +211,36 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <section className="bg-tg-section-bg rounded-2xl p-3 flex flex-col gap-3">
-          <h2 className="text-tg-section-header-text uppercase text-xs font-semibold tracking-wider">
-            Получение
-          </h2>
+        <section className={sectionClass}>
+          <h2 className={sectionHeader}>/ Получение</h2>
 
-          <fieldset className="flex gap-2">
-            <label className="flex-1 cursor-pointer">
+          <fieldset className="grid grid-cols-2 gap-0 border-2 border-ink">
+            <label className="cursor-pointer">
               <input
                 type="radio"
                 value={DeliveryType.PICKUP}
                 className="peer sr-only"
                 {...register('deliveryType')}
               />
-              <span className="block text-center rounded-xl bg-tg-secondary-bg text-tg-text px-3 py-2 peer-checked:bg-tg-button peer-checked:text-tg-button-text">
+              <span className="block text-center font-display font-bold uppercase px-3 py-2.5 border-r-2 border-ink peer-checked:bg-ink peer-checked:text-paper">
                 Самовывоз
               </span>
             </label>
-            <label className="flex-1 cursor-pointer">
+            <label className="cursor-pointer">
               <input
                 type="radio"
                 value={DeliveryType.DELIVERY}
                 className="peer sr-only"
                 {...register('deliveryType')}
               />
-              <span className="block text-center rounded-xl bg-tg-secondary-bg text-tg-text px-3 py-2 peer-checked:bg-tg-button peer-checked:text-tg-button-text">
+              <span className="block text-center font-display font-bold uppercase px-3 py-2.5 peer-checked:bg-ink peer-checked:text-paper">
                 Доставка
               </span>
             </label>
           </fieldset>
 
           {deliveryType === DeliveryType.DELIVERY && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1.5">
               <label htmlFor="address" className={labelClass}>
                 Адрес
               </label>
@@ -246,9 +256,9 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="scheduledAt" className={labelClass}>
-              Желаемое время <span className="text-tg-hint">(необязательно)</span>
+              Желаемое время <span className="text-mute">(необязательно)</span>
             </label>
             <input
               id="scheduledAt"
@@ -262,9 +272,9 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <label htmlFor="comment" className={labelClass}>
-              Комментарий <span className="text-tg-hint">(необязательно)</span>
+              Комментарий <span className="text-mute">(необязательно)</span>
             </label>
             <textarea
               id="comment"
@@ -278,20 +288,25 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <p className="text-tg-hint text-xs px-1">
-          Оплата при получении в кофейне.
+        <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mute px-1">
+          оплата при получении в кофейне
         </p>
 
         {submitError && (
-          <p className="text-tg-destructive text-sm px-1">{submitError}</p>
+          <p className="font-mono text-xs uppercase tracking-[0.15em] text-danger px-1">
+            {submitError}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-tg-button text-tg-button-text rounded-2xl px-4 py-3 font-semibold active:opacity-90 disabled:opacity-60 transition-opacity"
+          className="bg-ink text-paper border-2 border-ink px-4 py-4 font-display font-bold uppercase text-lg tracking-wide active:translate-y-[2px] disabled:opacity-50 transition-transform"
+          style={{ boxShadow: '6px 6px 0 0 var(--color-accent)' }}
         >
-          {isSubmitting ? 'Отправляем…' : `Оформить заказ · ${formatPrice(totalPrice)}`}
+          {isSubmitting
+            ? 'Отправляем…'
+            : `Оформить · ${formatPrice(totalPrice)}`}
         </button>
       </form>
     </main>

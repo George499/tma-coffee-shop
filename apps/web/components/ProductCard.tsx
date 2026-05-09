@@ -5,14 +5,31 @@ import { useCart, selectQuantityFor } from '@/lib/cart-store';
 import { formatPrice } from '@/lib/format';
 import type { Product } from '@/lib/types';
 
-export function ProductCard({ product }: { product: Product }) {
+const STEAM_CATEGORIES = new Set(['coffee', 'tea']);
+
+export function ProductCard({
+  product,
+  categorySlug,
+  isLastInRow,
+}: {
+  product: Product;
+  categorySlug: string;
+  /** Skip the right border on the last cell of a row to avoid doubling. */
+  isLastInRow: boolean;
+}) {
   const quantity = useCart(selectQuantityFor(product.id));
   const add = useCart((s) => s.add);
   const decrement = useCart((s) => s.decrement);
 
+  const showSteam = STEAM_CATEGORIES.has(categorySlug);
+
   return (
-    <article className="bg-tg-section-bg rounded-2xl overflow-hidden shadow-sm flex flex-col">
-      <div className="relative aspect-square bg-tg-secondary-bg">
+    <article
+      className={`relative flex flex-col bg-card border-b-2 border-ink ${
+        isLastInRow ? '' : 'border-r-2'
+      }`}
+    >
+      <div className="relative aspect-square overflow-hidden bg-ink">
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
@@ -20,26 +37,35 @@ export function ProductCard({ product }: { product: Product }) {
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover"
-            // Picsum redirects to a CDN that some networks proxy through CGN
-            // ranges, which Next's image optimiser blocks as a private IP.
-            // Skip the proxy until real product images replace placeholders.
-            unoptimized
           />
         ) : (
-          <div className="absolute inset-0 grid place-items-center text-tg-hint text-sm">
-            No image
+          <div className="absolute inset-0 grid place-items-center text-mute text-xs font-mono uppercase">
+            no image
           </div>
         )}
+        {showSteam && (
+          <div className="steam" aria-hidden="true">
+            <span className="steam__plume steam__plume--a" />
+            <span className="steam__plume steam__plume--b" />
+            <span className="steam__plume steam__plume--c" />
+          </div>
+        )}
+        <span className="absolute top-2 left-2 font-mono text-[10px] uppercase tracking-[0.18em] bg-paper text-ink px-1.5 py-0.5 border-2 border-ink">
+          № {String(product.id).padStart(2, '0')}
+        </span>
       </div>
-      <div className="flex flex-col gap-1 p-3 flex-1">
-        <h3 className="text-tg-text font-semibold leading-tight">{product.name}</h3>
+
+      <div className="flex flex-col gap-2 p-3 flex-1">
+        <h3 className="font-display font-bold text-base leading-tight uppercase">
+          {product.name}
+        </h3>
         {product.description && (
-          <p className="text-tg-hint text-sm leading-snug line-clamp-2">
+          <p className="text-mute text-xs leading-snug line-clamp-2">
             {product.description}
           </p>
         )}
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-          <span className="text-tg-text font-semibold">
+          <span className="font-mono font-bold text-base tabular-nums">
             {formatPrice(product.price)}
           </span>
           {quantity === 0 ? (
@@ -47,28 +73,28 @@ export function ProductCard({ product }: { product: Product }) {
               type="button"
               onClick={() => add(product)}
               aria-label={`Add ${product.name} to cart`}
-              className="bg-tg-button text-tg-button-text rounded-full w-8 h-8 grid place-items-center text-lg font-semibold leading-none active:opacity-80 transition-opacity"
+              className="border-2 border-ink bg-accent text-accent-ink w-9 h-9 grid place-items-center text-xl font-bold leading-none active:translate-y-[1px] transition-transform"
             >
               +
             </button>
           ) : (
-            <div className="flex items-center gap-1 bg-tg-secondary-bg rounded-full">
+            <div className="flex items-stretch border-2 border-ink">
               <button
                 type="button"
                 onClick={() => decrement(product.id)}
                 aria-label={`Remove one ${product.name}`}
-                className="w-8 h-8 grid place-items-center text-tg-text text-lg font-semibold leading-none active:opacity-60"
+                className="w-8 h-8 grid place-items-center text-base font-bold leading-none active:bg-ink active:text-paper transition-colors"
               >
                 −
               </button>
-              <span className="text-tg-text font-semibold min-w-[1.25rem] text-center tabular-nums">
+              <span className="w-7 grid place-items-center font-mono font-bold tabular-nums border-x-2 border-ink">
                 {quantity}
               </span>
               <button
                 type="button"
                 onClick={() => add(product)}
                 aria-label={`Add another ${product.name}`}
-                className="w-8 h-8 grid place-items-center text-tg-text text-lg font-semibold leading-none active:opacity-60"
+                className="w-8 h-8 grid place-items-center bg-accent text-accent-ink text-base font-bold leading-none active:bg-ink active:text-paper transition-colors"
               >
                 +
               </button>
