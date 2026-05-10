@@ -64,7 +64,7 @@ body {
     opacity: 0.7;
   }
   100% {
-    transform: translate3d(var(--steam-drift, 8px), -90px, 0) scaleX(1.6);
+    transform: translate3d(var(--steam-drift, 8px), -130px, 0) scaleX(1.6);
     opacity: 0;
   }
 }
@@ -79,7 +79,7 @@ body {
 
 .steam__plume {
   position: absolute;
-  bottom: 48%;
+  bottom: 60%;
   width: 16px;
   height: 70px;
   background: linear-gradient(
