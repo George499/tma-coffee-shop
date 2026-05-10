@@ -39,7 +39,7 @@ export function CartBar() {
       >
         <span className="flex items-center justify-between gap-3 pl-5 pr-2 py-2">
           <span className="flex items-baseline gap-2">
-            <span className="font-display italic text-base">
+            <span className="font-display font-medium text-base">
               {totalQuantity} {pluralizeItems(totalQuantity)}
             </span>
             <span className="font-sans text-xs text-cream/60 tabular-nums">

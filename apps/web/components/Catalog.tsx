@@ -17,8 +17,8 @@ export function Catalog() {
 
   if (categoriesQuery.isPending || productsQuery.isPending) {
     return (
-      <p className="font-sans text-sm text-mute italic px-5 py-6">
-        загружаем меню…
+      <p className="font-sans text-sm text-mute px-5 py-6">
+        Загружаем меню…
       </p>
     );
   }

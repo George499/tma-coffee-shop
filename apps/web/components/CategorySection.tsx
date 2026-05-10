@@ -13,7 +13,7 @@ export function CategorySection({
   return (
     <section className="px-5 mb-10">
       <header className="flex items-baseline justify-between mb-4">
-        <h2 className="font-display italic text-2xl text-ink">
+        <h2 className="font-display font-semibold text-2xl text-ink">
           {category.name}
         </h2>
         <span className="font-sans text-[11px] uppercase tracking-[0.18em] text-mute tabular-nums">

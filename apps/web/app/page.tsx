@@ -11,8 +11,8 @@ export default function Home() {
           </p>
           <h1 className="mt-3 font-display text-[clamp(2.75rem,10vw,4.75rem)] leading-[0.95] tracking-tight text-ink">
             Coffee
-            <span className="italic font-medium text-accent"> & </span>
-            <span className="italic">co.</span>
+            <span className="font-medium text-accent"> &amp; </span>
+            co.
           </h1>
           <p className="mt-4 text-sm text-mute max-w-md leading-relaxed">
             Свежесваренный кофе, чай и выпечка. Выбирайте, оформляйте —

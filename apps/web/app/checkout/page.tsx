@@ -65,7 +65,7 @@ export default function CheckoutPage() {
   if (!hasHydrated) {
     return (
       <main className="flex-1 max-w-4xl w-full mx-auto px-5 py-6">
-        <p className="text-sm text-mute italic">загружаем корзину…</p>
+        <p className="text-sm text-mute">Загружаем корзину…</p>
       </main>
     );
   }
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
   const errorClass = 'font-sans text-xs text-danger';
   const sectionClass =
     'bg-card rounded-2xl p-5 flex flex-col gap-3 border border-line-soft';
-  const sectionHeader = 'font-display italic text-xl text-ink';
+  const sectionHeader = 'font-display font-semibold text-xl text-ink';
 
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto pb-32">
@@ -136,7 +136,7 @@ export default function CheckoutPage() {
             </p>
             <h1 className="mt-2 font-display text-[clamp(2rem,7vw,3.25rem)] leading-[0.95] tracking-tight text-ink">
               Оформление
-              <span className="italic text-accent"> заказа</span>
+              <span className="text-accent"> заказа</span>
             </h1>
           </div>
           <Link
@@ -168,7 +168,7 @@ export default function CheckoutPage() {
             ))}
           </ul>
           <div className="flex items-baseline justify-between border-t border-line-soft pt-3">
-            <span className="font-display italic text-lg">Итого</span>
+            <span className="font-display font-medium text-lg">Итого</span>
             <span className="font-display text-xl tabular-nums">
               {formatPrice(totalPrice)}
             </span>
@@ -289,7 +289,7 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <p className="text-xs text-mute italic px-1">
+        <p className="text-xs text-mute px-1">
           Оплата при получении в кофейне.
         </p>
 

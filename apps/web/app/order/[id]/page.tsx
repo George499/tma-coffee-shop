@@ -88,7 +88,7 @@ export default function OrderPage({
             </p>
             <h1 className="mt-2 font-display text-[clamp(2rem,7vw,3.25rem)] leading-[0.95] tracking-tight text-ink">
               Ваш
-              <span className="italic text-accent"> заказ</span>
+              <span className="text-accent"> заказ</span>
             </h1>
           </div>
           <Link
@@ -103,7 +103,7 @@ export default function OrderPage({
 
       <div className="px-5 flex flex-col gap-4">
         {query.isPending && (
-          <p className="text-sm text-mute italic">загружаем заказ…</p>
+          <p className="text-sm text-mute">Загружаем заказ…</p>
         )}
 
         {query.isError && (
@@ -125,7 +125,7 @@ export default function OrderPage({
 function OrderDetails({ order }: { order: Order }) {
   const sectionClass =
     'bg-card rounded-2xl p-5 flex flex-col gap-2 border border-line-soft';
-  const sectionHeader = 'font-display italic text-xl text-ink';
+  const sectionHeader = 'font-display font-semibold text-xl text-ink';
 
   return (
     <>
@@ -165,7 +165,7 @@ function OrderDetails({ order }: { order: Order }) {
           ))}
         </ul>
         <div className="flex items-baseline justify-between border-t border-line-soft pt-3 mt-1">
-          <span className="font-display italic text-lg">Итого</span>
+          <span className="font-display font-medium text-lg">Итого</span>
           <span className="font-display text-xl tabular-nums">
             {formatPrice(order.totalAmount)}
           </span>
