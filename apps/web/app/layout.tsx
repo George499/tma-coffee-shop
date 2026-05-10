@@ -1,25 +1,26 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Lora, DM_Sans } from 'next/font/google';
 import { QueryProvider } from '@/components/QueryProvider';
 import { TelegramInit } from '@/components/TelegramInit';
 import './globals.css';
 
-const display = Inter({
+const display = Lora({
   subsets: ['latin', 'cyrillic'],
   variable: '--font-display-loaded',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800', '900'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
 });
 
-const mono = JetBrains_Mono({
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-mono-loaded',
+const sans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans-loaded',
   display: 'swap',
-  weight: ['400', '500', '700'],
+  weight: ['400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: 'COFFEE SHOP',
+  title: 'Coffee Shop',
   description: 'Telegram Mini App: coffee shop catalog and cart.',
 };
 
@@ -39,9 +40,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${display.variable} ${mono.variable} h-full antialiased`}
+      className={`${display.variable} ${sans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-paper text-ink">
+      <body className="min-h-full flex flex-col bg-bone text-ink">
         <TelegramInit />
         <QueryProvider>{children}</QueryProvider>
       </body>

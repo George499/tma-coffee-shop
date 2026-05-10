@@ -65,9 +65,7 @@ export default function CheckoutPage() {
   if (!hasHydrated) {
     return (
       <main className="flex-1 max-w-4xl w-full mx-auto px-5 py-6">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute">
-          загрузка корзины…
-        </p>
+        <p className="text-sm text-mute italic">загружаем корзину…</p>
       </main>
     );
   }
@@ -75,10 +73,10 @@ export default function CheckoutPage() {
   if (totalQuantity === 0) {
     return (
       <main className="flex-1 max-w-4xl w-full mx-auto px-5 py-6">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute">
-          корзина пустая.{' '}
-          <Link href="/" className="underline text-ink">
-            вернуться в каталог
+        <p className="text-sm text-mute">
+          Корзина пустая.{' '}
+          <Link href="/" className="text-accent underline">
+            Вернуться в каталог
           </Link>
         </p>
       </main>
@@ -121,36 +119,39 @@ export default function CheckoutPage() {
   });
 
   const fieldClass =
-    'w-full bg-card text-ink px-3 py-2.5 border-2 border-ink outline-none font-display placeholder:text-mute focus:bg-paper';
-  const labelClass =
-    'font-mono text-[10px] uppercase tracking-[0.2em] text-ink';
-  const errorClass = 'font-mono text-[10px] uppercase tracking-[0.15em] text-danger';
-  const sectionClass = 'border-2 border-ink bg-card p-4 flex flex-col gap-3';
-  const sectionHeader =
-    'font-mono text-[10px] uppercase tracking-[0.25em] text-ink border-b-2 border-ink pb-2';
+    'w-full bg-cream text-ink px-4 py-3 rounded-xl border border-line outline-none placeholder:text-mute/70 focus:border-accent transition-colors';
+  const labelClass = 'font-sans text-xs font-medium text-ink';
+  const errorClass = 'font-sans text-xs text-danger';
+  const sectionClass =
+    'bg-card rounded-2xl p-5 flex flex-col gap-3 border border-line-soft';
+  const sectionHeader = 'font-display italic text-xl text-ink';
 
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto pb-32">
-      <header className="px-5 pt-6 pb-5 border-b-2 border-ink flex items-end justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-mute">
-            шаг 02 · оформление
-          </p>
-          <h1 className="mt-2 font-display font-bold text-[clamp(2rem,7vw,3.5rem)] leading-[0.95] tracking-tight uppercase">
-            Checkout
-          </h1>
+      <header className="px-5 pt-7 pb-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-mute">
+              шаг 02 · оформление
+            </p>
+            <h1 className="mt-2 font-display text-[clamp(2rem,7vw,3.25rem)] leading-[0.95] tracking-tight text-ink">
+              Оформление
+              <span className="italic text-accent"> заказа</span>
+            </h1>
+          </div>
+          <Link
+            href="/"
+            className="font-sans text-sm text-mute hover:text-ink whitespace-nowrap"
+          >
+            ← каталог
+          </Link>
         </div>
-        <Link
-          href="/"
-          className="font-mono text-xs uppercase tracking-[0.18em] underline whitespace-nowrap"
-        >
-          ← каталог
-        </Link>
+        <div className="mt-5 h-px bg-line" />
       </header>
-      <form onSubmit={onSubmit} className="px-5 pt-5 flex flex-col gap-4" noValidate>
+      <form onSubmit={onSubmit} className="px-5 flex flex-col gap-4" noValidate>
         <section className={sectionClass}>
-          <h2 className={sectionHeader}>/ Заказ</h2>
-          <ul className="flex flex-col gap-1.5">
+          <h2 className={sectionHeader}>Заказ</h2>
+          <ul className="flex flex-col gap-2">
             {Object.values(items).map((entry) => (
               <li
                 key={entry.product.id}
@@ -158,24 +159,24 @@ export default function CheckoutPage() {
               >
                 <span>
                   {entry.product.name}
-                  <span className="text-mute font-mono"> × {entry.quantity}</span>
+                  <span className="text-mute font-sans"> × {entry.quantity}</span>
                 </span>
-                <span className="font-mono tabular-nums">
+                <span className="font-display tabular-nums">
                   {formatPrice(entry.product.price * entry.quantity)}
                 </span>
               </li>
             ))}
           </ul>
-          <div className="flex items-baseline justify-between border-t-2 border-ink pt-2">
-            <span className="font-display font-bold uppercase">Итого</span>
-            <span className="font-mono font-bold text-lg tabular-nums">
+          <div className="flex items-baseline justify-between border-t border-line-soft pt-3">
+            <span className="font-display italic text-lg">Итого</span>
+            <span className="font-display text-xl tabular-nums">
               {formatPrice(totalPrice)}
             </span>
           </div>
         </section>
 
         <section className={sectionClass}>
-          <h2 className={sectionHeader}>/ Контакты</h2>
+          <h2 className={sectionHeader}>Контакты</h2>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="customerName" className={labelClass}>
@@ -212,9 +213,9 @@ export default function CheckoutPage() {
         </section>
 
         <section className={sectionClass}>
-          <h2 className={sectionHeader}>/ Получение</h2>
+          <h2 className={sectionHeader}>Получение</h2>
 
-          <fieldset className="grid grid-cols-2 gap-0 border-2 border-ink">
+          <fieldset className="grid grid-cols-2 gap-2">
             <label className="cursor-pointer">
               <input
                 type="radio"
@@ -222,7 +223,7 @@ export default function CheckoutPage() {
                 className="peer sr-only"
                 {...register('deliveryType')}
               />
-              <span className="block text-center font-display font-bold uppercase px-3 py-2.5 border-r-2 border-ink peer-checked:bg-ink peer-checked:text-paper">
+              <span className="block text-center font-sans font-medium text-sm px-3 py-3 rounded-xl border border-line bg-cream peer-checked:bg-ink peer-checked:text-cream peer-checked:border-ink transition-colors">
                 Самовывоз
               </span>
             </label>
@@ -233,7 +234,7 @@ export default function CheckoutPage() {
                 className="peer sr-only"
                 {...register('deliveryType')}
               />
-              <span className="block text-center font-display font-bold uppercase px-3 py-2.5 peer-checked:bg-ink peer-checked:text-paper">
+              <span className="block text-center font-sans font-medium text-sm px-3 py-3 rounded-xl border border-line bg-cream peer-checked:bg-ink peer-checked:text-cream peer-checked:border-ink transition-colors">
                 Доставка
               </span>
             </label>
@@ -258,7 +259,7 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="scheduledAt" className={labelClass}>
-              Желаемое время <span className="text-mute">(необязательно)</span>
+              Желаемое время <span className="text-mute font-normal">(необязательно)</span>
             </label>
             <input
               id="scheduledAt"
@@ -274,7 +275,7 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="comment" className={labelClass}>
-              Комментарий <span className="text-mute">(необязательно)</span>
+              Комментарий <span className="text-mute font-normal">(необязательно)</span>
             </label>
             <textarea
               id="comment"
@@ -288,25 +289,23 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-mute px-1">
-          оплата при получении в кофейне
+        <p className="text-xs text-mute italic px-1">
+          Оплата при получении в кофейне.
         </p>
 
         {submitError && (
-          <p className="font-mono text-xs uppercase tracking-[0.15em] text-danger px-1">
-            {submitError}
-          </p>
+          <p className="font-sans text-sm text-danger px-1">{submitError}</p>
         )}
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-ink text-paper border-2 border-ink px-4 py-4 font-display font-bold uppercase text-lg tracking-wide active:translate-y-[2px] disabled:opacity-50 transition-transform"
-          style={{ boxShadow: '6px 6px 0 0 var(--color-accent)' }}
+          className="bg-accent text-cream rounded-full px-5 py-4 font-sans font-medium tracking-wide active:scale-[0.99] disabled:opacity-50 transition-transform"
+          style={{ boxShadow: '0 12px 28px -10px rgba(168, 73, 44, 0.55)' }}
         >
           {isSubmitting
             ? 'Отправляем…'
-            : `Оформить · ${formatPrice(totalPrice)}`}
+            : `Оформить заказ · ${formatPrice(totalPrice)}`}
         </button>
       </form>
     </main>

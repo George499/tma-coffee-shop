@@ -29,30 +29,26 @@ export function CartBar() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-50 px-3 pt-3"
+      className="fixed inset-x-0 bottom-0 z-40 px-4 pt-3"
       style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
     >
       <Link
         href="/checkout"
-        className="block max-w-4xl mx-auto bg-ink text-paper border-2 border-ink active:translate-y-[2px] transition-transform"
-        style={{ boxShadow: '6px 6px 0 0 var(--color-accent)' }}
+        className="block max-w-4xl mx-auto bg-ink text-cream rounded-full active:scale-[0.99] transition-transform"
+        style={{ boxShadow: '0 16px 40px -10px rgba(26, 22, 18, 0.45)' }}
       >
-        <span className="flex items-center justify-between gap-3 px-4 py-3.5">
-          <span className="flex flex-col">
-            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/60">
-              корзина
-            </span>
-            <span className="font-display font-bold uppercase">
+        <span className="flex items-center justify-between gap-3 pl-5 pr-2 py-2">
+          <span className="flex items-baseline gap-2">
+            <span className="font-display italic text-base">
               {totalQuantity} {pluralizeItems(totalQuantity)}
             </span>
-          </span>
-          <span className="flex items-center gap-3">
-            <span className="font-mono font-bold tabular-nums">
+            <span className="font-sans text-xs text-cream/60 tabular-nums">
               {formatPrice(totalPrice)}
             </span>
-            <span className="font-display font-bold text-xl leading-none">
-              →
-            </span>
+          </span>
+          <span className="flex items-center gap-2 bg-accent text-cream rounded-full pl-4 pr-3 py-2.5">
+            <span className="font-sans font-medium text-sm">К оформлению</span>
+            <span aria-hidden="true">→</span>
           </span>
         </span>
       </Link>

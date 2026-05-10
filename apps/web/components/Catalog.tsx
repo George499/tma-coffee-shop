@@ -17,16 +17,16 @@ export function Catalog() {
 
   if (categoriesQuery.isPending || productsQuery.isPending) {
     return (
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute px-5 py-6">
-        loading menu…
+      <p className="font-sans text-sm text-mute italic px-5 py-6">
+        загружаем меню…
       </p>
     );
   }
 
   if (categoriesQuery.isError || productsQuery.isError) {
     return (
-      <p className="font-mono text-xs uppercase tracking-[0.2em] text-danger px-5 py-6">
-        failed to load. try again later.
+      <p className="font-sans text-sm text-danger px-5 py-6">
+        Не удалось загрузить меню. Попробуйте позже.
       </p>
     );
   }

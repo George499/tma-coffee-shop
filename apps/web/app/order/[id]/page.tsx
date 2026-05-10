@@ -15,12 +15,12 @@ const STATUS_LABEL: Record<Order['status'], string> = {
   CANCELLED: 'Отменён',
 };
 
-const STATUS_TAG: Record<Order['status'], string> = {
-  NEW: 'NEW',
-  ACCEPTED: 'IN PROGRESS',
-  READY: 'READY',
-  COMPLETED: 'DONE',
-  CANCELLED: 'CANCELLED',
+const STATUS_TONE: Record<Order['status'], string> = {
+  NEW: 'bg-cream text-ink',
+  ACCEPTED: 'bg-accent text-cream',
+  READY: 'bg-forest text-cream',
+  COMPLETED: 'bg-ink text-cream',
+  CANCELLED: 'bg-danger text-cream',
 };
 
 // Adaptive polling: tighter for fresh orders that need quick admin feedback,
@@ -80,37 +80,39 @@ export default function OrderPage({
 
   return (
     <main className="flex-1 max-w-4xl w-full mx-auto pb-12">
-      <header className="px-5 pt-6 pb-5 border-b-2 border-ink flex items-end justify-between gap-4">
-        <div>
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-mute">
-            шаг 03 · подтверждение
-          </p>
-          <h1 className="mt-2 font-display font-bold text-[clamp(2rem,7vw,3.5rem)] leading-[0.95] tracking-tight uppercase">
-            Order
-          </h1>
+      <header className="px-5 pt-7 pb-5">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="font-sans text-[11px] uppercase tracking-[0.2em] text-mute">
+              шаг 03 · подтверждение
+            </p>
+            <h1 className="mt-2 font-display text-[clamp(2rem,7vw,3.25rem)] leading-[0.95] tracking-tight text-ink">
+              Ваш
+              <span className="italic text-accent"> заказ</span>
+            </h1>
+          </div>
+          <Link
+            href="/"
+            className="font-sans text-sm text-mute hover:text-ink whitespace-nowrap"
+          >
+            ← каталог
+          </Link>
         </div>
-        <Link
-          href="/"
-          className="font-mono text-xs uppercase tracking-[0.18em] underline whitespace-nowrap"
-        >
-          ← каталог
-        </Link>
+        <div className="mt-5 h-px bg-line" />
       </header>
 
-      <div className="px-5 pt-5 flex flex-col gap-4">
+      <div className="px-5 flex flex-col gap-4">
         {query.isPending && (
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-mute">
-            загрузка заказа…
-          </p>
+          <p className="text-sm text-mute italic">загружаем заказ…</p>
         )}
 
         {query.isError && (
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-danger">
+          <p className="font-sans text-sm text-danger">
             {query.error instanceof ApiError && query.error.status === 404
-              ? 'заказ не найден'
+              ? 'Заказ не найден'
               : query.error instanceof ApiError && query.error.status === 403
-                ? 'нет доступа к этому заказу'
-                : 'не удалось загрузить заказ'}
+                ? 'Нет доступа к этому заказу'
+                : 'Не удалось загрузить заказ'}
           </p>
         )}
 
@@ -121,32 +123,32 @@ export default function OrderPage({
 }
 
 function OrderDetails({ order }: { order: Order }) {
-  const sectionClass = 'border-2 border-ink bg-card p-4 flex flex-col gap-2';
-  const sectionHeader =
-    'font-mono text-[10px] uppercase tracking-[0.25em] text-ink border-b-2 border-ink pb-2';
+  const sectionClass =
+    'bg-card rounded-2xl p-5 flex flex-col gap-2 border border-line-soft';
+  const sectionHeader = 'font-display italic text-xl text-ink';
 
   return (
     <>
       <section
-        className="border-2 border-ink bg-ink text-paper p-4 flex flex-col gap-2"
-        style={{ boxShadow: '6px 6px 0 0 var(--color-accent)' }}
+        className={`rounded-2xl p-5 flex flex-col gap-3 ${STATUS_TONE[order.status]}`}
+        style={{ boxShadow: '0 16px 40px -16px rgba(26, 22, 18, 0.35)' }}
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-paper/60">
+          <p className="font-sans text-[11px] tracking-[0.2em] uppercase opacity-70">
             № {order.id.slice(0, 12)}…
           </p>
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] bg-accent text-accent-ink px-1.5 py-0.5 border-2 border-paper">
-            {STATUS_TAG[order.status]}
+          <span className="font-sans text-[11px] uppercase tracking-[0.18em] bg-cream/20 px-2 py-0.5 rounded-full">
+            {order.status}
           </span>
         </div>
-        <p className="font-display font-bold uppercase text-lg">
+        <p className="font-display text-xl leading-snug">
           {STATUS_LABEL[order.status]}
         </p>
       </section>
 
       <section className={sectionClass}>
-        <h2 className={sectionHeader}>/ Состав</h2>
-        <ul className="flex flex-col gap-1.5 pt-1">
+        <h2 className={sectionHeader}>Состав</h2>
+        <ul className="flex flex-col gap-2 pt-1">
           {order.items.map((item) => (
             <li
               key={item.id}
@@ -154,25 +156,25 @@ function OrderDetails({ order }: { order: Order }) {
             >
               <span>
                 {item.productName}
-                <span className="text-mute font-mono"> × {item.quantity}</span>
+                <span className="text-mute font-sans"> × {item.quantity}</span>
               </span>
-              <span className="font-mono tabular-nums">
+              <span className="font-display tabular-nums">
                 {formatPrice(item.productPrice * item.quantity)}
               </span>
             </li>
           ))}
         </ul>
-        <div className="flex items-baseline justify-between border-t-2 border-ink pt-2 mt-1">
-          <span className="font-display font-bold uppercase">Итого</span>
-          <span className="font-mono font-bold text-lg tabular-nums">
+        <div className="flex items-baseline justify-between border-t border-line-soft pt-3 mt-1">
+          <span className="font-display italic text-lg">Итого</span>
+          <span className="font-display text-xl tabular-nums">
             {formatPrice(order.totalAmount)}
           </span>
         </div>
       </section>
 
       <section className={sectionClass}>
-        <h2 className={sectionHeader}>/ Детали</h2>
-        <div className="flex flex-col gap-1.5 pt-1 text-sm">
+        <h2 className={sectionHeader}>Детали</h2>
+        <div className="flex flex-col gap-2 pt-1 text-sm">
           <Row label="Получение" value={DELIVERY_LABEL[order.deliveryType]} />
           {order.address && <Row label="Адрес" value={order.address} />}
           {order.scheduledAt && (
@@ -190,9 +192,7 @@ function OrderDetails({ order }: { order: Order }) {
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3">
-      <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-mute">
-        {label}
-      </span>
+      <span className="font-sans text-xs text-mute">{label}</span>
       <span className="text-right">{value}</span>
     </div>
   );
